@@ -4,4 +4,5 @@
   </Folder>
   <Project Path="HomeBudget.App/HomeBudget.App.csproj" />
   <Project Path="HomeBudget.Core/HomeBudget.Core.csproj" />
+  <Project Path="HomeBudget.Desktop/HomeBudget.Desktop.csproj" />
 </Solution>

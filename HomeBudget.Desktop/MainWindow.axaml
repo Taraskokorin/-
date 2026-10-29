@@ -1,0 +1,89 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:HomeBudget.Desktop.ViewModels"
+        x:Class="HomeBudget.Desktop.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="Домашня бухгалтерія"
+        Width="820" Height="520">
+
+  <Window.Styles>
+    <Style Selector="Border.feedback.income">
+      <Setter Property="Background" Value="#3322C55E" />
+    </Style>
+    <Style Selector="Border.feedback.expense">
+      <Setter Property="Background" Value="#33EF4444" />
+    </Style>
+    <Style Selector="Border.feedback.skipped">
+      <Setter Property="Background" Value="#33EAB308" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel Margin="20">
+
+    <TextBlock DockPanel.Dock="Top"
+               Text="{Binding Status}"
+               Opacity="0.7" Margin="0,0,0,10" />
+
+    <ProgressBar DockPanel.Dock="Top" Margin="0,0,0,14"
+                 Maximum="{Binding Total}" Value="{Binding Done}" />
+
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                Spacing="10" Margin="0,16,0,0">
+      <Button Content="Провести" Command="{Binding ApplyCommand}"
+              IsDefault="True" />
+      <Button Content="Далі" Command="{Binding NextCommand}"
+              IsDefault="True" />
+    </StackPanel>
+
+    <!-- Праворуч – журнал проведених операцій. -->
+    <Border DockPanel.Dock="Right" Width="260" Margin="20,0,0,0"
+            Padding="12" CornerRadius="6" BorderThickness="1"
+            BorderBrush="#40808080">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="Проведено" FontWeight="SemiBold"
+                   Margin="0,0,0,8" />
+        <ItemsControl ItemsSource="{Binding Journal}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,6" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </DockPanel>
+    </Border>
+
+    <StackPanel Spacing="12">
+      <TextBlock Text="{Binding Description}" FontSize="20"
+                 TextWrapping="Wrap" IsVisible="{Binding HasTransaction}" />
+      <TextBlock Text="{Binding Details}" Opacity="0.8"
+                 TextWrapping="Wrap" IsVisible="{Binding HasTransaction}" />
+
+      <ContentControl Content="{Binding Input}" IsVisible="{Binding HasTransaction}">
+        <ContentControl.DataTemplates>
+          <DataTemplate DataType="vm:AccountChoiceInput">
+            <StackPanel Spacing="6">
+              <TextBlock Text="{Binding Prompt}" />
+              <ListBox ItemsSource="{Binding Options}"
+                       SelectedIndex="{Binding SelectedIndex}" />
+            </StackPanel>
+          </DataTemplate>
+          <DataTemplate DataType="vm:AccountTextInput">
+            <TextBox Text="{Binding Text}" Watermark="{Binding Prompt}" />
+          </DataTemplate>
+        </ContentControl.DataTemplates>
+      </ContentControl>
+
+      <Border Classes="feedback" Padding="12,8" CornerRadius="6"
+              Classes.income="{Binding IsIncome}"
+              Classes.expense="{Binding IsExpense}"
+              Classes.skipped="{Binding IsSkipped}">
+        <TextBlock Text="{Binding Feedback}" TextWrapping="Wrap"
+                   FontWeight="SemiBold" />
+      </Border>
+
+      <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" FontSize="16" />
+    </StackPanel>
+
+  </DockPanel>
+
+</Window>
