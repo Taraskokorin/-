@@ -1,6 +1,7 @@
 namespace HomeBudget.Transactions;
 
 /// <summary>Надходження: гроші приходять на один рахунок.</summary>
+[TransactionKind("income", "Надходження")]
 public class Income : Transaction
 {
     public string Account { get; set; } = "Картка";
@@ -31,8 +32,6 @@ public class Income : Transaction
     public override IReadOnlyList<string> Accounts => new[] { Account };
 
     public override string Prompt => "На який рахунок надійшло";
-
-    public override string Kind => "income";
 
     public override void WriteData(IDictionary<string, string> data)
     {

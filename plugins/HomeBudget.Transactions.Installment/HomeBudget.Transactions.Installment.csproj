@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Складнику потрібне ядро, щоб успадкувати Transaction, але копіювати
+         ядро поруч із собою він не повинен: ядро вже є в застосунку. -->
+    <ProjectReference Include="..\..\HomeBudget.Core\HomeBudget.Core.csproj"
+                      Private="false"
+                      ExcludeAssets="runtime" />
+  </ItemGroup>
+
+</Project>

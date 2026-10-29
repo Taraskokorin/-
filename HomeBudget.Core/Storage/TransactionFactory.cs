@@ -3,19 +3,17 @@ using HomeBudget.Transactions;
 
 namespace HomeBudget.Storage;
 
-internal static class TransactionFactory
+internal class TransactionFactory
 {
-    public static Transaction? Create(string kind) => kind switch
-    {
-        "expense" => new Expense(),
-        "income" => new Income(),
-        "transfer" => new Transfer(),
-        _ => null
-    };
+    private readonly TransactionCatalog catalog;
 
-    public static Transaction? FromRecord(TransactionRecord record)
+    public TransactionFactory(TransactionCatalog catalog) => this.catalog = catalog;
+
+    // перестав бути static: тепер він користується полем catalog
+    public Transaction? FromRecord(TransactionRecord record)
     {
-        var transaction = Create(record.Kind);
+        // Замість switch – запит до каталогу.
+        var transaction = catalog.Create(record.Kind);
 
         if (transaction is null)
             return null;

@@ -14,8 +14,17 @@ public class JsonTransactionStorage : ITransactionStorage
     };
 
     private readonly string path;
+    private readonly TransactionFactory factory;
 
-    public JsonTransactionStorage(string path) => this.path = path;
+    /// <summary>Сховище з різновидами, які знає ядро.</summary>
+    public JsonTransactionStorage(string path) : this(path, TransactionCatalog.Default) { }
+
+    /// <summary>Сховище з власним каталогом різновидів.</summary>
+    public JsonTransactionStorage(string path, TransactionCatalog catalog)
+    {
+        this.path = path;
+        factory = new TransactionFactory(catalog);
+    }
 
     public string Path => path;
 
@@ -52,7 +61,7 @@ public class JsonTransactionStorage : ITransactionStorage
 
         foreach (var record in records ?? new List<TransactionRecord>())
         {
-            var transaction = TransactionFactory.FromRecord(record);
+            var transaction = factory.FromRecord(record);
 
             // Запис невідомого різновиду пропускають, решту читають.
             if (transaction is not null)

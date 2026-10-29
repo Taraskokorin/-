@@ -32,8 +32,8 @@ public abstract class Transaction
     /// <summary>Підказка для введення. Різновид може змінити.</summary>
     public virtual string Prompt => "Рахунок";
 
-    /// <summary>Позначка різновиду: під нею операцію пишуть у файл.</summary>
-    public abstract string Kind { get; }
+    /// <summary>Позначка різновиду з атрибута [TransactionKind]: під нею операцію пишуть у файл.</summary>
+    public virtual string Kind => TransactionKinds.Of(GetType());
 
     /// <summary>Записує власні дані різновиду до словника.</summary>
     public abstract void WriteData(IDictionary<string, string> data);

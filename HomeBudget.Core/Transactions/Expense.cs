@@ -1,6 +1,7 @@
 namespace HomeBudget.Transactions;
 
 /// <summary>Витрата: гроші йдуть з одного рахунку.</summary>
+[TransactionKind("expense", "Витрата")]
 public class Expense : Transaction
 {
     public string Account { get; set; } = "Готівка";
@@ -34,8 +35,6 @@ public class Expense : Transaction
     public override IReadOnlyList<string> Accounts => new[] { Account };
 
     public override string Prompt => "З якого рахунку сплачено";
-
-    public override string Kind => "expense";
 
     public override void WriteData(IDictionary<string, string> data)
     {

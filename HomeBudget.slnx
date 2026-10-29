@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/plugins/">
+    <Project Path="plugins/HomeBudget.Transactions.Installment/HomeBudget.Transactions.Installment.csproj" />
+  </Folder>
   <Project Path="HomeBudget.App/HomeBudget.App.csproj" />
   <Project Path="HomeBudget.Core/HomeBudget.Core.csproj" />
 </Solution>

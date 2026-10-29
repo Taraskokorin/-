@@ -3,6 +3,7 @@ using System.Globalization;
 namespace HomeBudget.Transactions;
 
 /// <summary>Переказ між власними рахунками: з одного знімають, на інший зараховують.</summary>
+[TransactionKind("transfer", "Переказ між рахунками")]
 public class Transfer : Transaction
 {
     public string FromAccount { get; set; } = "";
@@ -55,8 +56,6 @@ public class Transfer : Transaction
     public override IReadOnlyList<string> Accounts => new[] { FromAccount, ToAccount };
 
     public override string Prompt => "Рахунок (звідки чи куди)";
-
-    public override string Kind => "transfer";
 
     public override void WriteData(IDictionary<string, string> data)
     {
