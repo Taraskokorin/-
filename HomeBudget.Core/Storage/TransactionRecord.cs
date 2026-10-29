@@ -4,7 +4,7 @@ namespace HomeBudget.Storage;
 /// Те, що справді лежить у файлі: спільні поля плюс словник
 /// із даними, які потрібні конкретному різновиду.
 /// </summary>
-public class TransactionRecord
+internal class TransactionRecord
 {
     public int Id { get; set; }
     public string Kind { get; set; } = "";

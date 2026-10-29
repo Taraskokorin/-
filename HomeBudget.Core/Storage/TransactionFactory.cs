@@ -3,7 +3,7 @@ using HomeBudget.Transactions;
 
 namespace HomeBudget.Storage;
 
-public static class TransactionFactory
+internal static class TransactionFactory
 {
     public static Transaction? Create(string kind) => kind switch
     {
