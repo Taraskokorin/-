@@ -2,74 +2,174 @@ using HomeBudget.Ledger;
 using HomeBudget.Order;
 using HomeBudget.Storage;
 using HomeBudget.Transactions;
+using Spectre.Console;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
-Console.WriteLine("Домашня бухгалтерія");
 
-// Path.Combine складає шлях із правильним роздільником:
-// \ у Windows, / у Linux і macOS.
+AnsiConsole.Write(new Rule("[bold]Домашня бухгалтерія[/]")
+{
+    Justification = Justify.Left
+});
+
 var file = Path.Combine(AppContext.BaseDirectory, "data", "transactions.json");
 var storage = new JsonTransactionStorage(file);
 
 try
 {
-    // Ознака першого запуску – відсутній файл, а не порожній перелік:
-    // порожнім він буває й тоді, коли в журналі лише невідомі різновиди.
+    // Ознака першого запуску – відсутній файл, а не порожній перелік (ЛР 5).
     if (!File.Exists(storage.Path))
     {
         await storage.SaveAsync(SampleTransactionStorage.Transactions());
-        Console.WriteLine($"Створено зразковий журнал: {storage.Path}");
+        AnsiConsole.MarkupLineInterpolated(
+            $"[grey]Створено зразковий журнал: {storage.Path}[/]");
     }
 
     var session = new LedgerSession(storage, new ChronologicalOrder());
-    var transactions = await session.TransactionsAsync();
+    var ordered = await session.TransactionsAsync();
 
-    Console.WriteLine($"Операцій: {transactions.Count}, порядок: {session.OrderName}.");
+    // Усі рахунки журналу – з них обирають стрілками.
+    var accounts = ordered
+        .SelectMany(t => t.Accounts)
+        .Distinct(StringComparer.CurrentCultureIgnoreCase)
+        .Order()
+        .ToList();
 
-    Console.Write("Початковий баланс, грн (Enter – 0): ");
-    var startText = Console.ReadLine() ?? "";
-    var start = 0m;
+    AnsiConsole.MarkupLineInterpolated(
+        $"Операцій: [bold]{ordered.Count}[/], порядок: {session.OrderName}.");
 
-    if (startText.Trim() != "" && !Money.TryParse(startText, out start))
-        Console.WriteLine("Не вдалося прочитати суму, беру 0.");
+    var start = AskStartBalance();
 
-    foreach (var transaction in transactions)
+    for (var i = 0; i < ordered.Count; i++)
     {
-        Console.WriteLine();
-        Console.WriteLine(transaction);
+        var transaction = ordered[i];
 
-        if (transaction is Expense expense)
-            for (var n = 1; n <= expense.Items.Count; n++)
-                Console.WriteLine($"  {n}. {expense[n]}");
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(new Panel(new Text(Describe(transaction)))
+        {
+            Header = new PanelHeader(
+                $"{i + 1} з {ordered.Count} · {Markup.Escape(transaction.Category)}"),
+            Border = BoxBorder.Rounded,
+            Expand = true
+        });
 
-        Console.Write($"{transaction.Prompt}: ");
-        var given = Console.ReadLine() ?? "";
+        var given = Ask(transaction, accounts);
+
+        // Вплив рахує ядро. Оболонка лише обирає колір.
         var effect = session.Apply(transaction, given);
 
-        Console.WriteLine(effect != 0
-            ? $"Баланс «{given.Trim()}» зміниться на {effect:+0.00;-0.00} грн."
-            : $"Не стосується «{given.Trim()}». Очікувано: {transaction.ExpectedEffect}.");
+        if (effect > 0)
+            AnsiConsole.MarkupLineInterpolated($"[green]▲ {effect:+0.00} грн[/] на «{given.Trim()}»");
+        else if (effect < 0)
+            AnsiConsole.MarkupLineInterpolated($"[red]▼ {effect:0.00} грн[/] з «{given.Trim()}»");
+        else
+            AnsiConsole.MarkupLineInterpolated(
+                $"[yellow]✗ Не стосується «{given.Trim()}».[/] Очікувано: [bold]{transaction.ExpectedEffect}[/]");
     }
 
-    var summary = session.Summary;
-
-    Console.WriteLine();
-    Console.WriteLine(
-        $"Підсумок: проведено {summary.Applied} з {summary.Count}, " +
-        $"надійшло {summary.Income:0.00}, витрачено {summary.Expense:0.00}, " +
-        $"разом {summary.Net:+0.00;-0.00} грн.");
-    Console.WriteLine($"Баланс на кінець: {start + summary.Net:0.00} грн.");
-
-    if (summary.Skipped > 0)
-    {
-        Console.WriteLine("Перевірити варто:");
-
-        foreach (var transaction in session.NeedsAttention)
-            Console.WriteLine($"  {transaction.Description} – {transaction.ExpectedEffect}");
-    }
+    ShowSummary(session, start);
+    return 0;
 }
 catch (TransactionStorageException ex)
 {
-    Console.WriteLine(ex.Message);
-    Console.WriteLine("Виправте або видаліть файл журналу й запустіть ще раз.");
+    AnsiConsole.MarkupLineInterpolated($"[red]{ex.Message}[/]");
+    AnsiConsole.MarkupLine("Виправте або видаліть файл журналу.");
+    return 1;
+}
+
+// Опис операції для рамки; для витрати – ще й позиції чека.
+string Describe(Transaction transaction)
+{
+    var text = $"{transaction.Date:dd.MM.yyyy}  {transaction.Description}: {transaction.Amount:0.00} грн";
+
+    if (transaction is Expense expense)
+        for (var n = 1; n <= expense.Items.Count; n++)
+            text += $"{Environment.NewLine}  {n}. {expense[n]}";
+
+    return text;
+}
+
+bool IsInteractive() =>
+    AnsiConsole.Profile.Capabilities.Interactive && !Console.IsInputRedirected;
+
+decimal AskStartBalance()
+{
+    const string question = "Початковий баланс, грн (Enter – 0)";
+    string text;
+
+    if (IsInteractive())
+        text = AnsiConsole.Prompt(new TextPrompt<string>($"{question}:").AllowEmpty());
+    else
+    {
+        AnsiConsole.Markup($"{question}: ");
+        text = Console.ReadLine() ?? "";
+    }
+
+    if (text.Trim() == "")
+        return 0;
+
+    if (Money.TryParse(text, out var value))
+        return value;
+
+    AnsiConsole.MarkupLine("[yellow]Не вдалося прочитати суму, беру 0.[/]");
+    return 0;
+}
+
+// Вибір рахунку стрілками – лише в інтерактивному терміналі з ANSI.
+// Інакше друкуємо перелік і читаємо рядок.
+string Ask(Transaction transaction, IReadOnlyList<string> accounts)
+{
+    var canSelect = IsInteractive() && AnsiConsole.Profile.Capabilities.Ansi;
+
+    if (canSelect && accounts.Count > 0)
+    {
+        var account = AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title(Markup.Escape(transaction.Prompt))
+                .AddChoices(accounts)
+                .UseConverter(a => Markup.Escape(a)));
+
+        // Меню після вибору зникає – лишаємо слід, що саме обрано.
+        AnsiConsole.MarkupLineInterpolated($"{transaction.Prompt}: [blue]{account}[/]");
+        return account;
+    }
+
+    AnsiConsole.MarkupLineInterpolated($"[grey]Рахунки: {string.Join(", ", accounts)}[/]");
+
+    if (!IsInteractive())
+    {
+        AnsiConsole.Markup($"{Markup.Escape(transaction.Prompt)}: ");
+        return Console.ReadLine() ?? "";
+    }
+
+    var prompt = new TextPrompt<string>($"{Markup.Escape(transaction.Prompt)}:");
+    return AnsiConsole.Prompt(prompt.AllowEmpty());
+}
+
+void ShowSummary(LedgerSession session, decimal start)
+{
+    var result = session.Summary;
+
+    AnsiConsole.WriteLine();
+    AnsiConsole.Write(new Rule("[bold]Підсумок[/]")
+    {
+        Justification = Justify.Left
+    });
+
+    AnsiConsole.MarkupLineInterpolated(
+        $"Проведено {result.Applied} з {result.Count}: [green]+{result.Income:0.00}[/] / [red]-{result.Expense:0.00}[/] грн, баланс [bold]{start:0.00} → {start + result.Net:0.00}[/] грн");
+
+    if (result.Skipped == 0)
+        return;
+
+    var attention = new Table { Border = TableBorder.Rounded };
+    attention.AddColumn("Перевірити варто");
+    attention.AddColumn("Очікуваний вплив");
+
+    foreach (var transaction in session.NeedsAttention)
+        attention.AddRow(
+            new Text(transaction.Description),
+            new Text(transaction.ExpectedEffect));
+
+    AnsiConsole.WriteLine();
+    AnsiConsole.Write(attention);
 }

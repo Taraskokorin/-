@@ -18,13 +18,20 @@
 | Порядок перебору | `IReviewStrategy` | `ITransactionOrder` |
 | Підсумок | `SessionSummary` | `BalanceSummary` |
 
+## Будова
+
+| Каталог | Що це |
+|---|---|
+| `HomeBudget.Core/` | бібліотека-ядро: операції, сховище JSON, порядок перебору, ядро обліку |
+| `HomeBudget.App/` | консольна оболонка на Spectre.Console (`budget`) |
+| `tools/BudgetReport/` | окремий застосунок, що підключає ядро пакетом NuGet |
+
 ## Як запустити
 
 Потрібен .NET SDK 10.
 
 ```
-cd HomeBudget
-dotnet run
+dotnet run --project HomeBudget.App
 ```
 
 Автор: Кокорін Тарас, група 33 Бд-СОінф.
