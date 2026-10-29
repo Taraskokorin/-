@@ -1,18 +1,31 @@
 using HomeBudget.Ledger;
 using HomeBudget.Order;
+using HomeBudget.Platform;
 using HomeBudget.Storage;
 using HomeBudget.Transactions;
 using Spectre.Console;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-AnsiConsole.Write(new Rule("[bold]Домашня бухгалтерія[/]")
+if (args.Contains("--info"))
+{
+    // Text друкує рядок як є: дужки в шляхах не сприймуться як розмітка.
+    AnsiConsole.Write(new Panel(new Text(PlatformInfo.Describe()))
+    {
+        Header = new PanelHeader("Відомості про систему"),
+        Border = BoxBorder.Rounded
+    });
+
+    return 0;
+}
+
+AnsiConsole.Write(new Rule(
+    $"[bold]Домашня бухгалтерія[/] · {Markup.Escape(PlatformInfo.OsName)}")
 {
     Justification = Justify.Left
 });
 
-var file = Path.Combine(AppContext.BaseDirectory, "data", "transactions.json");
-var storage = new JsonTransactionStorage(file);
+var storage = new JsonTransactionStorage(BudgetLocation.DataFile);
 
 try
 {
