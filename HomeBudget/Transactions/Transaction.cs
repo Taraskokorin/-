@@ -1,33 +1,41 @@
 namespace HomeBudget.Transactions;
 
-/// <summary>Одна фінансова операція: опис, сума, категорія й рахунок.</summary>
-public class Transaction
+/// <summary>Спільна основа всіх операцій: те, що є в кожної.</summary>
+public abstract class Transaction
 {
     public int Id { get; set; }
     public string Description { get; set; } = "";
+    public string Category { get; set; } = "Інше";
+    public DateTime Date { get; set; } = DateTime.Today;
 
-    /// <summary>Сума зі знаком: від’ємна – витрата, додатна – надходження.</summary>
+    /// <summary>Сума операції, завжди додатна. Напрямок задає різновид.</summary>
     public decimal Amount { get; set; }
 
-    public string Category { get; set; } = "Інше";
-    public string Account { get; set; } = "Готівка";
+    protected Transaction() { }
 
-    public Transaction() { }
-
-    public Transaction(int id, string description, decimal amount)
+    protected Transaction(int id, string description, decimal amount)
     {
         Id = id;
         Description = description;
         Amount = amount;
     }
 
-    /// <summary>На скільки операція змінює баланс названого рахунку.</summary>
-    public decimal BalanceEffect(string account) =>
-        string.Equals(account.Trim(), Account.Trim(),
-            StringComparison.CurrentCultureIgnoreCase)
-            ? Amount
-            : 0;
+    /// <summary>На скільки операція змінює баланс рахунку. Кожен різновид – по-своєму.</summary>
+    public abstract decimal BalanceEffect(string account);
+
+    /// <summary>Очікуваний вплив текстом – для показу людині.</summary>
+    public abstract string ExpectedEffect { get; }
+
+    /// <summary>Рахунки, яких стосується операція.</summary>
+    public abstract IReadOnlyList<string> Accounts { get; }
+
+    /// <summary>Підказка для введення. Різновид може змінити.</summary>
+    public virtual string Prompt => "Рахунок";
+
+    protected static bool SameAccount(string given, string account) =>
+        string.Equals(given.Trim(), account.Trim(),
+            StringComparison.CurrentCultureIgnoreCase);
 
     public override string ToString() =>
-        $"#{Id} [{Category}] {Description}: {Amount:+0.00;-0.00} грн ({Account})";
+        $"#{Id} {Date:dd.MM} [{Category}] {Description}: {Amount:0.00} грн";
 }
