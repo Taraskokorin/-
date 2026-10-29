@@ -1,22 +1,19 @@
 using HomeBudget.Ledger;
+using HomeBudget.Order;
+using HomeBudget.Storage;
 using HomeBudget.Transactions;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 Console.WriteLine("Домашня бухгалтерія");
 
-var transactions = new List<Transaction>
-{
-    new Expense(1, "Продукти в АТБ", 642.50m, "Картка",
-        "Хліб", "Молоко", "Сир", "Яблука") { Category = "Продукти" },
-    new Income(2, "Стипендія", 2000m, "Картка", "ЖДУ ім. І. Франка")
-        { Category = "Дохід" },
-    new Expense(3, "Проїзд у маршрутці", 15m, "Готівка")
-        { Category = "Транспорт" },
-    new Transfer(4, "Зняв готівку в банкоматі", 500m, "Картка", "Готівка", 5m)
-        { Category = "Перекази" }
-};
+// Тут і тільки тут вирішують, з чого складається облік.
+ITransactionStorage storage = new SampleTransactionStorage();
+ITransactionOrder order = new ChronologicalOrder();
 
-Console.WriteLine($"Операцій у журналі: {transactions.Count}.");
+var session = new LedgerSession(storage, order);
+var transactions = session.Transactions();
+
+Console.WriteLine($"Операцій: {transactions.Count}, порядок: {session.OrderName}.");
 
 Console.Write("Початковий баланс, грн (Enter – 0): ");
 var startText = Console.ReadLine() ?? "";
@@ -24,8 +21,6 @@ var start = 0m;
 
 if (startText.Trim() != "" && !Money.TryParse(startText, out start))
     Console.WriteLine("Не вдалося прочитати суму, беру 0.");
-
-var summary = new BalanceSummary(0, 0, 0, 0);
 
 foreach (var transaction in transactions)
 {
@@ -38,18 +33,26 @@ foreach (var transaction in transactions)
 
     Console.Write($"{transaction.Prompt}: ");
     var given = Console.ReadLine() ?? "";
-    var effect = transaction.BalanceEffect(given);
-
-    summary += effect;
+    var effect = session.Apply(transaction, given);
 
     Console.WriteLine(effect != 0
         ? $"Баланс «{given.Trim()}» зміниться на {effect:+0.00;-0.00} грн."
         : $"Не стосується «{given.Trim()}». Очікувано: {transaction.ExpectedEffect}.");
 }
 
+var summary = session.Summary;
+
 Console.WriteLine();
 Console.WriteLine(
     $"Підсумок: проведено {summary.Applied} з {summary.Count}, " +
-    $"надійшло {summary.Income:0.00}, витрачено {summary.Expense:0.00} грн.");
-Console.WriteLine(
-    $"Баланс: {start:0.00} {summary.Net:+0.00;-0.00} = {start + summary.Net:0.00} грн.");
+    $"надійшло {summary.Income:0.00}, витрачено {summary.Expense:0.00}, " +
+    $"разом {summary.Net:+0.00;-0.00} грн.");
+Console.WriteLine($"Баланс на кінець: {start + summary.Net:0.00} грн.");
+
+if (summary.Skipped > 0)
+{
+    Console.WriteLine("Перевірити варто:");
+
+    foreach (var transaction in session.NeedsAttention)
+        Console.WriteLine($"  {transaction.Description} – {transaction.ExpectedEffect}");
+}
