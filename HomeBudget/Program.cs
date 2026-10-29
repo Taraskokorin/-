@@ -1,3 +1,4 @@
+using System.Text;
 using HomeBudget.Transactions;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -5,26 +6,36 @@ Console.WriteLine("Домашня бухгалтерія");
 
 var transactions = new List<Transaction>
 {
-    new Transaction(1, "Продукти в АТБ", 642.50m) { Account = "Картка" },
-    new Transaction(2, "Стипендія", 2000m) { Account = "Картка" },
-    new Transaction(3, "Проїзд у маршрутці", 15m) { Account = "Готівка" },
-    new Transaction(4, "Поповнення мобільного", 150m) { Account = "Картка" }
+    new Transaction(1, "Продукти в АТБ", -642.50m)
+        { Category = "Продукти", Account = "Картка" },
+    new Transaction(2, "Стипендія", 2000m)
+        { Category = "Дохід", Account = "Картка" },
+    new Transaction(3, "Проїзд у маршрутці", -15m)
+        { Category = "Транспорт", Account = "Готівка" },
+    new Transaction(4, "Поповнення мобільного", -150m)
+        { Category = "Зв’язок", Account = "Картка" }
 };
 
-Console.WriteLine($"У журналі {transactions.Count} операції.");
+Console.WriteLine($"Операцій у журналі: {transactions.Count}.");
 
-while (true)
+// Перелік збирають у буфер і друкують одним викликом.
+var list = new StringBuilder();
+
+foreach (var transaction in transactions)
+    list.AppendLine($"  {transaction}");
+
+Console.Write(list.ToString());
+
+foreach (var transaction in transactions)
 {
     Console.WriteLine();
-    Console.Write("Назва рахунку (порожній рядок — вихід): ");
+    Console.WriteLine(transaction.Description);
+    Console.Write("Рахунок: ");
     var given = Console.ReadLine() ?? "";
-    if (given.Trim() == "")
-        break;
 
-    var found = transactions.Where(t => t.BelongsTo(given)).ToList();
-    Console.WriteLine(found.Count > 0
-        ? $"Операцій за рахунком: {found.Count}"
-        : $"Рахунку «{given}» у журналі немає.");
-    foreach (var transaction in found)
-        Console.WriteLine(transaction);
+    var effect = transaction.BalanceEffect(given);
+
+    Console.WriteLine(effect != 0
+        ? $"Баланс рахунку «{given.Trim()}» зміниться на {effect:+0.00;-0.00} грн."
+        : $"Операція не стосується рахунку «{given.Trim()}». Її рахунок: {transaction.Account}.");
 }
