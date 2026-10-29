@@ -34,4 +34,24 @@ public class Expense : Transaction
     public override IReadOnlyList<string> Accounts => new[] { Account };
 
     public override string Prompt => "З якого рахунку сплачено";
+
+    public override string Kind => "expense";
+
+    public override void WriteData(IDictionary<string, string> data)
+    {
+        data["account"] = Account;
+
+        if (Items.Count > 0)
+            data["items"] = JoinParts(Items);
+    }
+
+    public override void ReadData(IReadOnlyDictionary<string, string> data)
+    {
+        Account = Read(data, "account");
+
+        Items.Clear();
+
+        if (data.TryGetValue("items", out var items))
+            Items.AddRange(items.Split(';', StringSplitOptions.RemoveEmptyEntries));
+    }
 }

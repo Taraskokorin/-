@@ -32,6 +32,29 @@ public abstract class Transaction
     /// <summary>Підказка для введення. Різновид може змінити.</summary>
     public virtual string Prompt => "Рахунок";
 
+    /// <summary>Позначка різновиду: під нею операцію пишуть у файл.</summary>
+    public abstract string Kind { get; }
+
+    /// <summary>Записує власні дані різновиду до словника.</summary>
+    public abstract void WriteData(IDictionary<string, string> data);
+
+    /// <summary>Читає власні дані різновиду зі словника.</summary>
+    public abstract void ReadData(IReadOnlyDictionary<string, string> data);
+
+    /// <summary>Роздільник ";" не може трапитися всередині значення,
+    /// інакше під час читання частин стане більше, ніж було.</summary>
+    protected static string JoinParts(IEnumerable<string> parts)
+    {
+        foreach (var part in parts)
+            if (part.Contains(';'))
+                throw new InvalidOperationException($"Значення «{part}» містить ';'.");
+
+        return string.Join(";", parts);
+    }
+
+    protected static string Read(IReadOnlyDictionary<string, string> data, string key) =>
+        data.TryGetValue(key, out var value) ? value : "";
+
     protected static bool SameAccount(string given, string account) =>
         string.Equals(given.Trim(), account.Trim(),
             StringComparison.CurrentCultureIgnoreCase);

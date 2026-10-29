@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace HomeBudget.Transactions;
 
 /// <summary>Переказ між власними рахунками: з одного знімають, на інший зараховують.</summary>
@@ -53,4 +55,29 @@ public class Transfer : Transaction
     public override IReadOnlyList<string> Accounts => new[] { FromAccount, ToAccount };
 
     public override string Prompt => "Рахунок (звідки чи куди)";
+
+    public override string Kind => "transfer";
+
+    public override void WriteData(IDictionary<string, string> data)
+    {
+        data["from"] = FromAccount;
+        data["to"] = ToAccount;
+
+        // У файл число пишуть із крапкою незалежно від мови системи,
+        // інакше той самий файл не прочитається на іншому комп’ютері.
+        if (Fee != 0)
+            data["fee"] = Fee.ToString(CultureInfo.InvariantCulture);
+    }
+
+    public override void ReadData(IReadOnlyDictionary<string, string> data)
+    {
+        FromAccount = Read(data, "from");
+        ToAccount = Read(data, "to");
+
+        Fee = data.TryGetValue("fee", out var text)
+              && decimal.TryParse(text, NumberStyles.Number,
+                     CultureInfo.InvariantCulture, out var fee)
+            ? fee
+            : 0;
+    }
 }

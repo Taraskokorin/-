@@ -2,10 +2,9 @@ using HomeBudget.Transactions;
 
 namespace HomeBudget.Storage;
 
-public class SampleTransactionStorage : ITransactionStorage
+/// <summary>Джерело зразкових операцій для першого запуску.</summary>
+public class SampleTransactionStorage
 {
-    public List<Transaction> Load() => Transactions();
-
     /// <summary>Зразкові операції. Статичний метод: вони знадобляться
     /// й тому, хто до сховища не звертається.</summary>
     public static List<Transaction> Transactions() => new()

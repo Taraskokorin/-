@@ -99,6 +99,35 @@
 7. Член, реалізований явно (`string ITransactionOrder.Name`), належить лише інтерфейсу. Тому його видно тільки через змінну типу інтерфейсу.
 8. Ядро не зміниться: у ньому немає жодного `Console`, тож вікно (ЛР 9) звертатиметься до тих самих методів.
 
+## ЛР 5. Файли, потоки й JSON
+
+- В основі `Transaction` з'явилися позначка різновиду `Kind` і дві дії: `WriteData(словник)` і `ReadData(словник)`. Кожен різновид записує свої ключі англійською:
+  - `expense`: `account`, `items` (позиції через `;`, з перевіркою, що `;` немає всередині позиції);
+  - `income`: `account`, `source`;
+  - `transfer`: `from`, `to`, `fee`.
+- **Числа й дати у файлі.** Комісію `fee` пишу у файл і читаю з файлу за незмінними правилами, з крапкою. Дату зберігаю у форматі ISO 8601 (`ToString("O")`). Сума `Amount` лежить у проміжному записі як число JSON, а воно завжди з крапкою.
+- **Сховище** складається з чотирьох частин:
+  - проміжний тип `TransactionRecord` — спільні поля плюс словник `Data`;
+  - перетворювач `TransactionFactory`;
+  - файлове сховище `JsonTransactionStorage` з асинхронними `LoadAsync`/`SaveAsync`;
+  - власний виняток `TransactionStorageException`.
+- Інтерфейс `ITransactionStorage` став асинхронним. Тому асинхронним став і метод ядра `TransactionsAsync`, а точка входу тепер використовує `await`.
+- Файл даних — `bin/Debug/net10.0/data/transactions.json`. Його створює перший запуск, коли файлу ще немає. Шлях складається через `Path.Combine`.
+
+### Три досліди з власним файлом
+1. **Кирилиця у файлі читається:** `"Description": "Продукти в АТБ"`, `"source": "ЖДУ ім. І. Франка"`. Без `Encoder = UnsafeRelaxedJsonEscaping` замість літер були б коди `П…`.
+2. **Без першої фігурної дужки:** застосунок вивів «Файл …transactions.json пошкоджено: це не коректний JSON. Виправте або видаліть файл журналу й запустіть ще раз.» Аварійного завершення з технічним звітом не було.
+3. **Невідомий різновид:** у переказу я замінив `"Kind": "transfer"` на `"Kind": "loan"`. Операцій стало 4 замість 5: переказ зник, решта прочиталася. Саме на цьому тримається ЛР 8.
+
+### Відповіді на «Перевірте себе»
+1. Проміжний тип потрібен, бо System.Text.Json сам не знає, який нащадок лежить у списку. Тому у файлі лежать спільні поля, позначка `Kind` і словник, а назовні сховище віддає готові об'єкти різновидів.
+2. Роздільник частин шляху різний: `\` у Windows і `/` у Linux та macOS. `Path.Combine` підставляє потрібний сам.
+3. Файл має читатися на будь-якій машині, тому в ньому незмінні правила. На екрані людина бачить правила своєї мови.
+4. `Encoder` залишає кирилицю літерами. Без нього у файлі були б коди `\uXXXX`.
+5. `async` позначає метод, усередині якого є `await`. `await` не блокує виконання, поки диск відповідає. Метод, що викликає асинхронний метод, теж має чекати на нього, тож асинхронність піднімається вгору ланцюжком викликів.
+6. Оболонка перехоплює один зрозумілий тип винятку й показує його текст, а первісний виняток лишається всередині як причина (`InnerException`).
+7. Так застосунок переживає записи, яких не знає (наприклад, з плагіна, який прибрали), і не втрачає решту журналу.
+
 ## Джерела
 - https://learn.microsoft.com/dotnet/core/tools/
 - https://learn.microsoft.com/dotnet/csharp/fundamentals/program-structure/top-level-statements
@@ -112,4 +141,8 @@
 - https://learn.microsoft.com/dotnet/csharp/fundamentals/types/interfaces
 - https://learn.microsoft.com/dotnet/csharp/programming-guide/interfaces/explicit-interface-implementation
 - https://learn.microsoft.com/dotnet/core/extensions/dependency-injection/overview
+- https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/overview
+- https://learn.microsoft.com/dotnet/api/system.io.path.combine
+- https://learn.microsoft.com/dotnet/csharp/asynchronous-programming/
+- https://learn.microsoft.com/dotnet/standard/exceptions/
 - Використано AI-помічника (Claude) для пояснень і перевірки коду; кожен фрагмент розібрано.

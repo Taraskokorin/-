@@ -25,7 +25,8 @@ public class LedgerSession
     public string OrderName => order.Name;
 
     /// <summary>Операції в порядку, який задала стратегія.</summary>
-    public List<Transaction> Transactions() => order.Order(storage.Load());
+    public async Task<List<Transaction>> TransactionsAsync() =>
+        order.Order(await storage.LoadAsync());
 
     /// <summary>Проводить операцію за названим рахунком і повертає вплив на баланс.</summary>
     public decimal Apply(Transaction transaction, string account)

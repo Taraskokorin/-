@@ -5,5 +5,6 @@ namespace HomeBudget.Storage;
 /// <summary>Звідки беруться операції: файл чи пам’ять – ядро не знає.</summary>
 public interface ITransactionStorage
 {
-    List<Transaction> Load();
+    Task<List<Transaction>> LoadAsync();
+    Task SaveAsync(List<Transaction> transactions);
 }

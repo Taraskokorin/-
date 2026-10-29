@@ -31,4 +31,20 @@ public class Income : Transaction
     public override IReadOnlyList<string> Accounts => new[] { Account };
 
     public override string Prompt => "На який рахунок надійшло";
+
+    public override string Kind => "income";
+
+    public override void WriteData(IDictionary<string, string> data)
+    {
+        data["account"] = Account;
+
+        if (!string.IsNullOrEmpty(Source))
+            data["source"] = Source;
+    }
+
+    public override void ReadData(IReadOnlyDictionary<string, string> data)
+    {
+        Account = Read(data, "account");
+        Source = Read(data, "source");
+    }
 }
