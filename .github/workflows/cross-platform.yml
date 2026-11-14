@@ -26,6 +26,7 @@ jobs:
         shell: bash
     env:
       OUT: publish/${{ matrix.rid }}/HomeBudget.App
+      NO_COLOR: 1
     steps:
       - uses: actions/checkout@v5
 
@@ -58,8 +59,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           printf '3000\nКартка\nКартка\nКартка\nКартка\nКартка\nКартка\n' | $OUT/budget | tail -9 | tee session.txt
-          dir=$(sed -n 's/^Каталог даних: //p' info.txt)
-          dir="${dir/#\~/$HOME}"
+          dir=$(sed -n 's/.*Каталог даних: \(.*[^ ]\) *│.*//p' info.txt)
           echo "Файл журналу:" | tee -a session.txt
           ls -l "$dir" | tee -a session.txt
 

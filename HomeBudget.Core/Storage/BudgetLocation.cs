@@ -9,7 +9,8 @@ public static class BudgetLocation
 {
     /// <summary>
     /// Windows – %APPDATA%\HomeBudget,
-    /// Linux і macOS – ~/.config/HomeBudget.
+    /// Linux – ~/.config/HomeBudget,
+    /// macOS – ~/Library/Application Support/HomeBudget (так повертає .NET 10).
     /// </summary>
     public static string Folder => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),

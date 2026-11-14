@@ -85,6 +85,6 @@ dotnet run --project tools/BudgetReport
 
 Перевірка на інших системах: на кожне надсилання змін GitHub Actions (`.github/workflows/cross-platform.yml`) збирає розв'язок на Linux, macOS і Windows. Потім він публікує самодостатню збірку й запускає `budget --info`, `--kinds` і сеанс із введенням.
 
-Журнал зберігається в каталозі даних користувача: `%APPDATA%\HomeBudget\transactions.json` у Windows і `~/.config/HomeBudget/transactions.json` у Linux та macOS.
+Журнал зберігається в каталозі даних користувача: `%APPDATA%\HomeBudget\transactions.json` у Windows, `~/.config/HomeBudget/transactions.json` у Linux і `~/Library/Application Support/HomeBudget/transactions.json` у macOS (перевірено запуском у GitHub Actions).
 
 Автор: Кокорін Тарас, група 33 Бд-СОінф.
