@@ -1,6 +1,7 @@
 # ЛР 7: перевірка на інших системах.
 # На моєму комп'ютері немає ні WSL, ні Docker, тому застосунок збирає
 # й запускає GitHub на справжніх машинах з Linux, macOS і Windows.
+# Виведення кожного запуску видно в анотаціях до прогону (Summary → Annotations).
 name: Збірка на трьох системах
 
 on:
@@ -23,10 +24,12 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      OUT: publish/${{ matrix.rid }}/HomeBudget.App
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
@@ -39,26 +42,32 @@ jobs:
           dotnet build tools/BudgetReport -c Release
 
       - name: Самодостатня збірка під цю систему
-        run: dotnet publish HomeBudget.App -c Release -r ${{ matrix.rid }} --self-contained true -o publish/${{ matrix.rid }}/HomeBudget.App
+        run: dotnet publish HomeBudget.App -c Release -r ${{ matrix.rid }} --self-contained true -o $OUT
 
       - name: --info із самодостатньої збірки
         run: |
-          cd publish/${{ matrix.rid }}/HomeBudget.App
-          chmod +x budget 2>/dev/null || true
-          ls -l budget* | head -3
-          file budget* 2>/dev/null | head -3 || true
-          ./budget --info
+          chmod +x $OUT/budget 2>/dev/null || true
+          $OUT/budget --info | tee info.txt
+          { echo "Розмір збірки: $(du -sh $OUT | cut -f1), файлів: $(find $OUT -type f | wc -l)"
+            file $OUT/budget* 2>/dev/null | sed 's|.*/||' || true; } | tee size.txt
 
       - name: --kinds
-        run: publish/${{ matrix.rid }}/HomeBudget.App/budget --kinds
-
-      - name: Розміри збірки
-        run: |
-          du -sh publish/${{ matrix.rid }}/HomeBudget.App
-          find publish/${{ matrix.rid }}/HomeBudget.App -type f | wc -l
+        run: $OUT/budget --kinds | tee kinds.txt
 
       - name: Сеанс із введенням і файл журналу
         if: runner.os != 'Windows'
         run: |
-          printf '3000\nКартка\nКартка\nКартка\nКартка\nКартка\nКартка\n' | publish/${{ matrix.rid }}/HomeBudget.App/budget | tail -12
-          ls -l ~/.config/HomeBudget/
+          printf '3000\nКартка\nКартка\nКартка\nКартка\nКартка\nКартка\n' | $OUT/budget | tail -9 | tee session.txt
+          dir=$(sed -n 's/^Каталог даних: //p' info.txt)
+          dir="${dir/#\~/$HOME}"
+          echo "Файл журналу:" | tee -a session.txt
+          ls -l "$dir" | tee -a session.txt
+
+      - name: Виведення в анотації
+        if: always()
+        run: |
+          for f in info size kinds session; do
+            [ -f $f.txt ] || continue
+            msg=$(sed 's/%/%25/g' $f.txt | awk '{printf "%s%%0A", $0}')
+            echo "::notice title=${{ matrix.rid }} ${f}::${msg}"
+          done
