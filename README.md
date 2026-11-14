@@ -60,6 +60,13 @@ dotnet run --project HomeBudget.App -- --info     # відомості про с
 dotnet run --project HomeBudget.App -- --kinds    # відомі різновиди операцій
 ```
 
+`tools/BudgetReport` не входить до розв'язку й підключає ядро пакетом NuGet із каталогу `packages`. Тому спершу треба зібрати пакет:
+
+```
+dotnet pack HomeBudget.Core -c Release -o ./packages
+dotnet run --project tools/BudgetReport
+```
+
 ## Збірки для трьох систем
 
 Зібрати все однією командою: `./publish.sh` (Linux, macOS, Git Bash) або `publish.ps1` (PowerShell). Результат з'явиться в `publish/<RID>/<оболонка>/`.
@@ -75,6 +82,8 @@ dotnet run --project HomeBudget.App -- --kinds    # відомі різнови�
 - **macOS:** файл, завантажений з мережі, потрапляє в карантин; зняти його можна командою `xattr -d com.apple.quarantine budget`.
 - **Linux:** потрібна бібліотека ICU (`libicu`). Віконній оболонці ще потрібні `libx11-6`, `libice6`, `libsm6` і `libfontconfig1`.
 - **Windows:** політика PowerShell `Restricted` не дає запустити `publish.ps1`. Я збирав через `bash publish.sh`.
+
+Перевірка на інших системах: на кожне надсилання змін GitHub Actions (`.github/workflows/cross-platform.yml`) збирає розв'язок на Linux, macOS і Windows. Потім він публікує самодостатню збірку й запускає `budget --info`, `--kinds` і сеанс із введенням.
 
 Журнал зберігається в каталозі даних користувача: `%APPDATA%\HomeBudget\transactions.json` у Windows і `~/.config/HomeBudget/transactions.json` у Linux та macOS.
 

@@ -1,0 +1,64 @@
+# ЛР 7: перевірка на інших системах.
+# На моєму комп'ютері немає ні WSL, ні Docker, тому застосунок збирає
+# й запускає GitHub на справжніх машинах з Linux, macOS і Windows.
+name: Збірка на трьох системах
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  run:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+          - os: windows-latest
+            rid: win-x64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Збірка розв'язку
+        run: dotnet build HomeBudget.slnx -c Release
+
+      - name: Пакет ядра й BudgetReport (ЛР 6)
+        run: |
+          dotnet pack HomeBudget.Core -c Release -o ./packages
+          dotnet build tools/BudgetReport -c Release
+
+      - name: Самодостатня збірка під цю систему
+        run: dotnet publish HomeBudget.App -c Release -r ${{ matrix.rid }} --self-contained true -o publish/${{ matrix.rid }}/HomeBudget.App
+
+      - name: --info із самодостатньої збірки
+        run: |
+          cd publish/${{ matrix.rid }}/HomeBudget.App
+          chmod +x budget 2>/dev/null || true
+          ls -l budget* | head -3
+          file budget* 2>/dev/null | head -3 || true
+          ./budget --info
+
+      - name: --kinds
+        run: publish/${{ matrix.rid }}/HomeBudget.App/budget --kinds
+
+      - name: Розміри збірки
+        run: |
+          du -sh publish/${{ matrix.rid }}/HomeBudget.App
+          find publish/${{ matrix.rid }}/HomeBudget.App -type f | wc -l
+
+      - name: Сеанс із введенням і файл журналу
+        if: runner.os != 'Windows'
+        run: |
+          printf '3000\nКартка\nКартка\nКартка\nКартка\nКартка\nКартка\n' | publish/${{ matrix.rid }}/HomeBudget.App/budget | tail -12
+          ls -l ~/.config/HomeBudget/
